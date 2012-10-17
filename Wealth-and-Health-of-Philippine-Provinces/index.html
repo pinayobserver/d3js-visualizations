@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Wealth and Health of Philippine Provinces</title>
+<style>
+
+@import url(../style.css?20120427);
+
+#chart {
+  margin-left: 40px;
+  height: 506px;
+}
+
+text {
+  font: 13px sans-serif;
+}
+
+.dot {
+  stroke: #000;
+  opacity: 0.75;
+}
+
+.dot.active {
+  stroke: #000;
+  opacity: 1.0;
+}
+
+
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.label {
+  fill: #777;
+}
+
+.name.label {
+  font: 14px "Helvetica Neue";
+  fill: #777;
+}
+
+.dot.label {
+  font: 10px sans-serif; 
+  fill: #ddd;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+  cursor: ew-resize;
+}
+
+</style>
+
+<h1>Wealth and Health of Philippine Provinces</h1>
+
+<p id="chart"></p>
+
+<p>This chart shows the wealth and health of the 80 provinces of the Philippines, plus Metro Manila. 
+Each province is represented by a bubble, whose size is proportional to its population.
+Average life expectancy in 2010 is used as a proxy for health, and the provincial LGU income per capita in 2011 is 
+used as a proxy for wealth. 
+</p>
+
+<p><b>To find your province, mouse over the region name on the right.</b> You can also mouse over any bubble to identify the province and reveal related statistics.</p>
+
+<p>Take note of the differences from region-to-region and from province-to-province. The horizontal and vertical lines mark national averages: life expectancy of 70.7 years (horizontal line), and provincial LGU income <em>per capita</em> of PhP 2,041 (vertical line). Note also that the (horizontal) income axis is <em>logarithmic</em>.</p>
+
+<p>Data sources: <a href="http://beta.census.gov.ph/statistics/quickstat">National Statistics Office (NSO)</a> for the population and life expectancy data, and <a href="http://blgf.gov.ph/#">Bureau of Local Government Finance (BLGF)</a> for the LGU income data.</p>
+
+<p>Attributions: Chart concept from Hans Rosling and the <a href="http://www.gapminder.org/">Gapminder Foundation</a>'s <a href="http://www.gapminder.org/downloads/gapminder-world-map/">world map</a>.
+Chart design from Mike Bostock's <a href="http://bost.ocks.org/mike/nations/">d3 version</a>.</p>
+<p>(Version: Oct-17-2012 / <a href="http://pinayobserver.wordpress.com">pinayobserver</a>)</p>
+
+<!-- "http://d3js.org/d3.v2.js?2.8.1" -->
+
+<script src="d3.v2.js"></script>
+
+<script>
+
+// Various accessors that specify the four dimensions of data to visualize.
+function x(d) { return d.incomePerCapita; }
+function y(d) { return d.lifeExpectancy; }
+function radius(d) { return d.population; }
+function color(d) { return d.region; }
+function key(d) { return d.name; }
+
+// Chart dimensions.
+var margin = {top: 19.5, right: 19.5, bottom: 19.5, left: 39.5},
+    width = 960 - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+// Various scales. These domains make assumptions of data, naturally.
+var xScale = d3.scale.log().domain([300, 2e4]).range([0, width]),
+    yScale = d3.scale.linear().domain([56, 76]).range([height, 0]),
+    radiusScale = d3.scale.sqrt().domain([0, 1e8]).range([0, 75]),
+    colorScale = d3.scale.category20();
+
+// The x & y axes.
+var xAxis = d3.svg.axis().orient("bottom").scale(xScale).ticks(12, d3.format(",d")),
+    yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+// Create the SVG container and set the origin.
+var svg = d3.select("#chart").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    
+// Add the x-axis.
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(xAxis);
+
+// Add the y-axis.
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis);
+
+// Add an x-axis label.
+svg.append("text")
+    .attr("class", "x label")
+    .attr("text-anchor", "end")
+    .attr("x", width)
+    .attr("y", height - 6)
+    .text("LGU income per capita in 2011 (PhP, nominal prices)"); // in 2006 constant prices)");
+
+// Add a y-axis label.
+svg.append("text")
+    .attr("class", "y label")
+    .attr("text-anchor", "end")
+    .attr("y", 6)
+    .attr("dy", ".75em")
+    .attr("transform", "rotate(-90)")
+    .text("life expectancy (years)");
+
+// Add the year label; the value is set on transition.
+var label = svg.append("text")
+    .attr("class", "year label")
+    .attr("text-anchor", "end")
+    //.attr("y", height - 24)
+    .attr("x", width)
+    .text("");
+
+// Set initial positions, population-weighted average values.	
+var x0=2041.86; //d3.sum(provinces, function(d){ return x(d)*radius(d); } 
+	// / d3.sum(provinces, function(d){ return radius(d); });
+var y0=70.70; //d3.sum(provinces, function(d){ return y(d)*radius(d); }
+	// / d3.sum(provinces, function(d){ return radius(d); });
+
+// Add lines at average values
+var hline = svg.append("line")
+.attr("y1",yScale(y0))
+.attr("y2",yScale(y0))
+.attr("x1",0)
+.attr("x2",width)
+.style("stroke","gray")
+  .append("title").text("National Average: "+String(y0)+" years");
+
+var vline = svg.append("line")
+.attr("x1",xScale(x0))
+.attr("x2",xScale(x0))
+.attr("y1",0)
+.attr("y2",height)
+.style("stroke","gray")
+  .append("title").text("National Average: PhP "+String(x0));
+
+// Get data
+d3.csv("data/data_provinces.csv", function(provinces){ 
+
+  // Nest data by region
+  var regions=d3.nest()
+    .key(function(d) {return d.region;})
+    //.sortKeys(d3.ascending)
+    .entries(provinces);
+
+  var regionName=['Metro Manila','Cordillera Autonomous Region','Ilocos Region','Cagayan Valley','Central Luzon', 'CALABARZON', 'MIMAROPA', 'Bicol Region', 'Western Visayas', 'Central Visayas', 'Eastern Visayas', 'Zamboanga Peninsula', 'Northern Mindanao', 'Davao Region', 'SOCCSKARGEN', 'CARAGA Region', 'Bangsamoro Region']; 
+
+  // Add a dot per province. 
+  // Need to do dots first so text will be on top of dots.
+  for(var ii=0; ii<d3.keys(regions).length; ii++){
+  
+	  var dot = svg.append("g").data(regions.slice(ii,ii+1))
+		  .attr("class", "dots")
+		.selectAll(".dot")
+		  .data(function(d){ return d.values; }) 
+		.enter().append("circle")
+		  .attr("class", "dot")
+		  .style("fill", function(d) { return colorScale(color(d)); })
+		  .style("opacity",0)
+		  .call(position)
+		  .sort(order)
+
+	  // Transition to final opacity
+	  var stepDuration=1500
+	  svg.selectAll(".dot").transition().duration(stepDuration).delay(stepDuration*ii).ease("linear")
+			.style("opacity",0.75);
+			
+  }
+
+  // Now, do the rest  
+  for(var ii=0; ii<d3.keys(regions).length; ii++){
+		  
+	  // Add dot labels - hidden
+	  var dotLabels = svg.append("g").data(regions.slice(ii,ii+1))
+	    .selectAll("text")
+	    .data(function(d){ return d.values; }) 
+	    .enter().append("text")
+	    .attr("class", "dot label") // "+ii)
+	  	.text(function(d) { return d.name; })
+ 	    .attr("x", function(d) { return xScale(x(d)); })
+        .attr("y", function(d) { return yScale(y(d)); })	
+	    .attr("text-anchor", "middle")
+        .attr("visibility", "hidden")
+
+      // Add mouseover actions; dots here are transparent.
+	  var dot = svg.append("g").data(regions.slice(ii,ii+1))
+		  .attr("class", "dots")
+		.selectAll(".dot.mask")
+		  .data(function(d){ return d.values; }) 
+		.enter().append("circle")
+		  .attr("class", "dot mask")
+		  .style("fill", function(d) { return colorScale(color(d)); })
+		  .style("opacity",0)
+		  .call(position) 
+		  .sort(order)
+		  .on("mouseover", function(d){
+		  	  d3.selectAll(".dot.label").filter(function(dd) { return dd.name == d.name; }) 
+			   .attr("visibility", "visible")
+		  })
+		   .on("mouseout", function(){
+		      d3.selectAll(".dot.label")
+			  .attr("visibility","hidden")
+		   });
+		   
+	  var comma = d3.format(",f")
+	  var pop6 = d3.format(".2f")
+	  
+	  // Add a title (will appear as alt text).
+	  dot.append("title")
+		  .text(function(d) { return d.name + "\n"
+		  	+ "Region: " + d.region + "\n" 
+		  	+ "Population: " + pop6(d.population*1.e-6)+" M \n"
+		  	+ "Life expectancy: " + y(d) + " years\n"
+		  	+ "Income per capita: PhP " + comma(x(d)) + "\n"; 
+		  	});
+		          			        
+	  // Add region names (legend)
+	  var nameLabel = svg.append("g").data(regions.slice(ii,ii+1))
+	    .selectAll("text")
+	    .data(function(d){ return d.values; }) 
+	    .enter().append("text")
+	    .attr("class", "name label")
+	    .attr("y", (ii+2)*(height/20.))
+	    .attr("x", width)
+	    .attr("text-anchor", "end")
+	    .text(function(d) { return d.region+": "+regionName[ii]; })
+
+	  nameLabel.transition().duration(stepDuration).delay(stepDuration*ii).ease("linear")
+	    .style("fill", function(d) { return colorScale(color(d)); })
+	    
+	  // Add an overlay for the region name labels.
+	  var box = nameLabel.node().getBBox();
+
+	  var overlay = svg.append("g").data(regions.slice(ii,ii+1))
+	    .selectAll("rect")
+	    .data(function(d){ return d.values; }) 
+	    .enter().append("rect")
+			.attr("class", "overlay")
+			.attr("x", box.x)
+			.attr("y", box.y)
+			.attr("width", box.width)
+			.attr("height", box.height)
+		    .on("mouseover", function(d){
+		  	  d3.selectAll(".dot.label").filter(function(dd) { return dd.region == d.region; }) // d3.keys(regions).slice(ii,ii+1); })
+			   .attr("visibility", "visible")
+		    }) // end mouseover function
+		   .on("mouseout", function(){
+		      d3.selectAll(".dot.label")
+			  .attr("visibility","hidden")
+		   });
+
+  } // close loop ii over region slices
+  
+  // Positions the dots based on data.
+  function position(dot) {
+    dot .attr("cx", function(d) { return xScale(x(d)); })
+        .attr("cy", function(d) { return yScale(y(d)); })
+        .attr("r", function(d) { return radiusScale(radius(d)); });
+  }
+  
+  // Positions the dots in initial location.
+  function position_initial(dot) {
+    dot .attr("cx", function(d) { return xScale(x0); })
+        .attr("cy", function(d) { return yScale(y0); })
+ 	    .attr("r", function(d) { return radiusScale(radius(d)); }) 
+  }
+  
+  // Positions the dots based on data, for nested array.
+  function positionNest(dot) {
+    dot .attr("cx", function(d) { return xScale(x(d.values)); })
+      .attr("cy", function(d) { return yScale(y(d.values)); })
+      .attr("r", function(d) { return radiusScale(radius(d.values)); })
+  }
+  
+  // Defines a sort order so that the smallest dots are drawn on top.
+  function order(a, b) {
+    return radius(b) - radius(a);
+  }
+  
+});
+
+// This script allows for creating of heatmap at crazyegg.com
+</script>
+<script type="text/javascript">
+setTimeout(function(){var a=document.createElement("script");
+var b=document.getElementsByTagName("script")[0];
+a.src=document.location.protocol+"//dnn506yrbagrg.cloudfront.net/pages/scripts/0013/2483.js?"+Math.floor(new Date().getTime()/3600000);
+a.async=true;a.type="text/javascript";b.parentNode.insertBefore(a,b)}, 1);
+</script>
