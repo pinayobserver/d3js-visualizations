@@ -1,5 +1,4 @@
 name,region,population,lifeExpectancy,incomePerCapita,expenditurePerCapita
-Metro Manila,NCR,11791828,72.20,5452.36,3654.20
 Abra,CAR, 234733,69.72,3819.06,3028.16
 Apayao,CAR, 112636,68.45,4404.01,2686.53
 Benguet,CAR, 722620,72.39,1849.04,1444.09
@@ -22,6 +21,7 @@ Nueva Ecija,Region III,1955373,71.90,1286.29, 786.46
 Pampanga,Region III,2340355,73.77,1401.42, 966.92
 Tarlac,Region III,1273240,71.11, 954.59, 661.32
 Zambales,Region III,2724811,70.33,1275.46,1035.47
+Metro Manila,NCR,11791828,72.20,5452.36,3654.20
 Batangas,Region IV-A,2377395,73.52,1322.34, 892.52
 Cavite,Region IV-A,3090691,72.56,1097.55, 605.78
 Laguna,Region IV-A,2669847,71.49,1696.43,1325.24

@@ -59,13 +59,13 @@ text {
 
 <p>This chart shows the wealth and health of the 80 provinces of the Philippines, plus Metro Manila. 
 Each province is represented by a bubble, whose size is proportional to its population.
-Average life expectancy in 2010 is used as a proxy for health, and the provincial LGU income per capita in 2011 is 
+Average life expectancy in 2010 is used as a proxy for health, and the provincial LGU expenditure per capita in 2011 is 
 used as a proxy for wealth. 
 </p>
 
 <p><b>To find your province, mouse over the region name on the right.</b> You can also mouse over any bubble to identify the province and reveal related statistics.</p>
 
-<p>Take note of the differences from region-to-region and from province-to-province. The horizontal and vertical lines mark national averages: life expectancy of 70.7 years (horizontal line), and provincial LGU income <em>per capita</em> of PhP 2,041 (vertical line). Note also that the (horizontal) income axis is <em>logarithmic</em>.</p>
+<p>Take note of the differences from region-to-region and from province-to-province. The horizontal and vertical lines mark national averages: life expectancy of 70.7 years (horizontal line), and provincial LGU expenditure <em>per capita</em> of PhP 1,437 (vertical line). Note also that the (horizontal) wealth axis is <em>logarithmic</em>.</p>
 
 <p>Data sources: <a href="http://beta.census.gov.ph/statistics/quickstat">National Statistics Office (NSO)</a> for the population and life expectancy data, and <a href="http://blgf.gov.ph/#">Bureau of Local Government Finance (BLGF)</a> for the LGU income data.</p>
 
@@ -80,7 +80,7 @@ Chart design from Mike Bostock's <a href="http://bost.ocks.org/mike/nations/">d3
 <script>
 
 // Various accessors that specify the four dimensions of data to visualize.
-function x(d) { return d.incomePerCapita; }
+function x(d) { return d.expenditurePerCapita; } //incomePerCapita
 function y(d) { return d.lifeExpectancy; }
 function radius(d) { return d.population; }
 function color(d) { return d.region; }
@@ -91,11 +91,22 @@ var margin = {top: 19.5, right: 19.5, bottom: 19.5, left: 39.5},
     width = 960 - margin.right,
     height = 500 - margin.top - margin.bottom;
 
+// Region names
+//var regionList=['CAR','Region I','Region II','Region III','NCR','Region IV-A','Region IV-B','Region V','Region VI','Region VII','Region VIII','Region IX','Region X','Region XI','Region XII','CARAGA','ARMM'];
+var regionName=['Cordillera Autonomous Region','Ilocos Region','Cagayan Valley','Central Luzon','Metro Manila', 'CALABARZON', 'MIMAROPA', 'Bicol Region', 'Western Visayas', 'Central Visayas', 'Eastern Visayas', 'Zamboanga Peninsula', 'Northern Mindanao', 'Davao Region', 'SOCCSKARGEN', 'CARAGA Region', 'Bangsamoro Region']; 
+
+// Set population-weighted average values.	
+var x0=1436.75; // expenditurePerCapita // 2041.86; // income //d3.sum(provinces, function(d){ return x(d)*radius(d); } 
+	// / d3.sum(provinces, function(d){ return radius(d); });
+var y0=70.70; //d3.sum(provinces, function(d){ return y(d)*radius(d); }
+	// / d3.sum(provinces, function(d){ return radius(d); });
+
 // Various scales. These domains make assumptions of data, naturally.
-var xScale = d3.scale.log().domain([300, 2e4]).range([0, width]),
+var xScale = d3.scale.log().domain([200, 1.1e4]).range([0, width]), //[300, 2e4]
     yScale = d3.scale.linear().domain([56, 76]).range([height, 0]),
     radiusScale = d3.scale.sqrt().domain([0, 1e8]).range([0, 75]),
-    colorScale = d3.scale.category20();
+    colorScale = d3.scale.category20b();
+    //d3.scale.ordinal().domain(["CAR","Region I","Region II","Region III","NCR","Region IV-A","Region IV-B","Region V","Region VI","Region VII","Region VIII","Region IX","Region X","Region XI","Region XII","CARAGA","ARMM"]).range(colorbrewer.Blues[9]); //limited to 9
 
 // The x & y axes.
 var xAxis = d3.svg.axis().orient("bottom").scale(xScale).ticks(12, d3.format(",d")),
@@ -125,7 +136,7 @@ svg.append("text")
     .attr("text-anchor", "end")
     .attr("x", width)
     .attr("y", height - 6)
-    .text("LGU income per capita in 2011 (PhP, nominal prices)"); // in 2006 constant prices)");
+    .text("LGU expenditure per capita in 2011 (PhP, nominal prices)"); // in 2006 constant prices)");
 
 // Add a y-axis label.
 svg.append("text")
@@ -143,12 +154,6 @@ var label = svg.append("text")
     //.attr("y", height - 24)
     .attr("x", width)
     .text("");
-
-// Set initial positions, population-weighted average values.	
-var x0=2041.86; //d3.sum(provinces, function(d){ return x(d)*radius(d); } 
-	// / d3.sum(provinces, function(d){ return radius(d); });
-var y0=70.70; //d3.sum(provinces, function(d){ return y(d)*radius(d); }
-	// / d3.sum(provinces, function(d){ return radius(d); });
 
 // Add lines at average values
 var hline = svg.append("line")
@@ -175,8 +180,6 @@ d3.csv("data/data_provinces.csv", function(provinces){
     .key(function(d) {return d.region;})
     //.sortKeys(d3.ascending)
     .entries(provinces);
-
-  var regionName=['Metro Manila','Cordillera Autonomous Region','Ilocos Region','Cagayan Valley','Central Luzon', 'CALABARZON', 'MIMAROPA', 'Bicol Region', 'Western Visayas', 'Central Visayas', 'Eastern Visayas', 'Zamboanga Peninsula', 'Northern Mindanao', 'Davao Region', 'SOCCSKARGEN', 'CARAGA Region', 'Bangsamoro Region']; 
 
   // Add a dot per province. 
   // Need to do dots first so text will be on top of dots.
